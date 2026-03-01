@@ -1,65 +1,222 @@
-# Shape-Detection-with-CNN
-Creating and Deploying a Real-time 4-Shape Recognition Model with CNN, Pooling, Dropout, and Webcam Integration
+# ShapeNet — Real-time Shape Recognition with CNN
+
+> Detects **circles**, **squares**, **stars**, and **triangles** from images and live webcam feeds using a deep convolutional neural network trained to 99%+ accuracy.
 
 ---
 
-### Introduction
+## Overview
 
-This project is a real-time shape recognition model that uses Convolutional Neural Networks (CNN), pooling layers, dropout, and image preprocessing techniques to identify four different shapes: circles, squares, triangles, and rectangles. In addition to the model, we've integrated it with a webcam to enable live shape detection. This text provides an overview of the project and its components, explaining how to use, and deploy it, and is intended to be uploaded to GitHub as a documentation for other developers or interested parties.
+ShapeNet is a full-fledged computer vision pipeline for geometric shape recognition. It covers data loading and augmentation, model training with callbacks, evaluation with detailed metrics, single-image inference, real-time webcam detection, and Grad-CAM visualizations — all driven by a single YAML config.
 
-### Project Structure
+### Model Architecture
 
-The project is organized into several key components:
-
-1. **Data Collection and Preprocessing**: We have prepared a dataset containing labeled images of the four shapes. We preprocess the images by resizing them to a consistent size, converting them to grayscale, and normalizing them for improved model performance.
-
-2. **Model Architecture**: Our model architecture consists of multiple convolutional layers, pooling layers to reduce spatial dimensions, and dropout layers to prevent overfitting. The final output layer uses softmax activation to classify shapes.
-
-3. **Training the Model**: We've trained the model using the preprocessed dataset. The training process involves optimizing the model's parameters to minimize the classification loss.
-
-4. **Webcam Integration**: To enable real-time shape detection, we've implemented webcam integration using OpenCV. The model processes video frames from the webcam, making predictions on detected shapes.
-
-5. **User Interface**: We provide a simple user interface that displays the webcam feed and overlays shape predictions in real-time.
-
-### Dependencies
-
-The project relies on several libraries and frameworks, including:
-
-- Python: The main programming language for the project.
-- TensorFlow/Keras: Used for building and training the CNN model.
-- OpenCV: Utilized for webcam integration and video processing.
-- Numpy: For array manipulation and numerical operations.
-- Matplotlib: Used for displaying images and results.
-- Other standard Python libraries.
-
-### Usage
-
-To use the project:
-
-1. Clone the repository from GitHub: `git clone https://github.com/punyamodi/Shape-Detection-with-CNN/blob/main/4-shapes-100-accuracy%20(1)%20(1).ipynb`
-
-2. Ensure you have all the required dependencies installed. You can typically use pip to install them.
-
-3. Train the model: If you have a new dataset, you can retrain the model by running the training script. If you'd like to use our pre-trained model, you can download it from the project's releases section on GitHub.
-
-4. Run the real-time shape detection script. This will start your webcam and display the live feed with shape predictions.
-
-### Future Improvements
-
-1. **Improved Model Performance**: You can enhance the model's accuracy by collecting more diverse training data or fine-tuning hyperparameters.
-
-2. **Support for Additional Shapes**: Extend the project to recognize more shapes by expanding the dataset and updating the model architecture.
-
-3. **Object Localization**: Implement object localization to not only classify shapes but also locate their positions within the frame.
-
-### Conclusion
-
-This project showcases a real-time shape recognition system utilizing CNNs, pooling, dropout, and webcam integration. It serves as a foundation for further computer vision applications and can be easily extended or integrated into other projects. Feel free to contribute, use, or modify it according to your needs.
-
-To collaborate and contribute, please fork the GitHub repository, make changes, and submit pull requests. We welcome any improvements, bug fixes, or new features to make this project even better.
-
-Thank you for your interest and contributions to this project!
+```
+Input (200×200×1)
+       │
+ ┌─────▼─────┐
+ │  Conv2D   │  32 filters  → BN → MaxPool
+ │  Conv2D   │  64 filters  → BN → MaxPool
+ │  Conv2D   │  128 filters → BN → MaxPool
+ │  Conv2D   │  256 filters → BN → MaxPool
+ └─────┬─────┘
+       │
+ GlobalAveragePooling2D
+       │
+  Dense(256) → BN → Dropout(0.5)
+  Dense(128) → BN → Dropout(0.5)
+       │
+  Dense(4, softmax)
+       │
+  {circle | square | star | triangle}
+```
 
 ---
 
-Feel free to customize the content and add further details about your specific implementation and requirements. This text is a starting point for creating documentation for your GitHub repository.
+## Project Structure
+
+```
+Shape-Detection-with-CNN/
+├── shapenet/
+│   ├── config.py          # Dataclass-based config with YAML loading
+│   ├── train.py           # Training loop with callbacks
+│   ├── evaluate.py        # Metrics, confusion matrix, classification report
+│   ├── inference.py       # Single-image and real-time webcam prediction
+│   ├── gradcam.py         # Grad-CAM saliency maps
+│   ├── data/
+│   │   ├── dataset.py     # Dataset loading, extraction, and splits
+│   │   └── augment.py     # Custom augmentation sequence
+│   └── model/
+│       └── cnn.py         # CNN architecture builder
+├── scripts/
+│   ├── train.py           # CLI entry point for training
+│   ├── evaluate.py        # CLI entry point for evaluation
+│   └── predict.py         # CLI entry point for inference
+├── configs/
+│   └── default.yaml       # Default hyperparameters and paths
+├── tests/
+│   ├── test_data.py       # Dataset loading tests
+│   └── test_model.py      # Model architecture tests
+├── shapes.zip             # Dataset: ~14,970 grayscale 200×200 images
+├── requirements.txt
+└── setup.py
+```
+
+---
+
+## Dataset
+
+The dataset contains **~14,970 grayscale images** (200×200 px) spread evenly across four classes:
+
+| Class    | Count |
+|----------|-------|
+| Circle   | 3,720 |
+| Square   | 3,765 |
+| Star     | 3,765 |
+| Triangle | 3,720 |
+
+`shapes.zip` is extracted automatically on first run. No manual setup required.
+
+---
+
+## Quick Start
+
+### 1. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Train
+
+```bash
+python scripts/train.py --config configs/default.yaml
+```
+
+Override hyperparameters without editing the config:
+
+```bash
+python scripts/train.py --epochs 20 --batch-size 64 --lr 0.0005
+```
+
+### 3. Evaluate
+
+```bash
+python scripts/evaluate.py --config configs/default.yaml
+```
+
+Outputs:
+- Test accuracy and loss
+- Per-class precision, recall, F1
+- Confusion matrix saved to `plots/confusion_matrix.png`
+
+### 4. Predict — single image
+
+```bash
+python scripts/predict.py --image path/to/shape.png
+```
+
+With Grad-CAM overlay:
+
+```bash
+python scripts/predict.py --image path/to/shape.png --gradcam
+```
+
+### 5. Predict — live webcam
+
+```bash
+python scripts/predict.py --webcam
+# or specify a camera index
+python scripts/predict.py --webcam --camera 1
+```
+
+Press `q` to exit the webcam window.
+
+---
+
+## Configuration
+
+All training and inference parameters live in `configs/default.yaml`:
+
+```yaml
+data:
+  zip_path: shapes.zip
+  image_size: [200, 200]
+  channels: 1
+  test_size: 0.20
+  val_size: 0.15
+  batch_size: 32
+  classes: [circle, square, star, triangle]
+
+model:
+  filters: [32, 64, 128, 256]
+  dense_units: [256, 128]
+  dropout_rate: 0.5
+  use_batch_norm: true
+
+training:
+  epochs: 30
+  learning_rate: 0.001
+  early_stopping_patience: 7
+  reduce_lr_patience: 3
+  reduce_lr_factor: 0.5
+
+output:
+  model_dir: models
+  plots_dir: plots
+  model_name: shapenet.h5
+```
+
+---
+
+## Features
+
+- **Config-driven** — all parameters in a single YAML file, overridable via CLI flags
+- **Data augmentation** — random rotation (±180°), horizontal/vertical flips, translation
+- **Training callbacks** — EarlyStopping, ReduceLROnPlateau, ModelCheckpoint, TensorBoard
+- **Detailed evaluation** — classification report, confusion matrix heatmap
+- **Grad-CAM** — visualize which regions the model focuses on for any prediction
+- **Real-time webcam** — live shape detection with confidence bar overlay
+- **Unit tests** — pytest suite covering data loading and model architecture
+
+---
+
+## Training Outputs
+
+After training, the following artifacts are saved:
+
+| Path | Description |
+|------|-------------|
+| `models/shapenet.h5` | Best checkpoint (highest val accuracy) |
+| `plots/training_curves.png` | Loss and accuracy curves |
+| `plots/confusion_matrix.png` | Confusion matrix heatmap |
+| `logs/` | TensorBoard event files |
+
+View TensorBoard logs:
+
+```bash
+tensorboard --logdir logs
+```
+
+---
+
+## Running Tests
+
+```bash
+pytest tests/ -v
+```
+
+---
+
+## Tech Stack
+
+- **TensorFlow / Keras** — model building and training
+- **OpenCV** — image I/O, webcam capture, Grad-CAM overlay
+- **scikit-learn** — train/val/test splits, evaluation metrics
+- **seaborn / matplotlib** — confusion matrix and training curves
+- **PyYAML** — config management
+
+---
+
+## License
+
+MIT
